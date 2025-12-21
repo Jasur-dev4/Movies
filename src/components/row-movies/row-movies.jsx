@@ -7,20 +7,22 @@ import RowMoviesItem from '../row-movies-item/row-movies-item';
 import './row-movies.scss';
 import Error from '../error/error';
 import Spinner from '../spinner/spinner';
+import useMovieService from '../../services/movie-service';
+import { useLocation } from 'react-router';
 
 const RowMovies = () => {
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(false);
 	const [open, setOpen] = useState(false);
 	const [movies, setMovies] = useState([]);
 	const [movieId, setMovieId] = useState(null);
 	const [page, setPage] = useState(2);
 	const [newItemLoading, setNewItemLoading] = useState(false);
 
-	const movieService = new MovieService();
+	const { pathname } = useLocation();
+
+	const { getTrandingMovies, getPopularMovies, loading, error } = useMovieService();
 
 	useEffect(() => {
-		getTrendingMovies();
+		getMovies();
 	}, []);
 
 	const onClose = () => setOpen(false);
@@ -30,40 +32,40 @@ const RowMovies = () => {
 		setMovieId(id);
 	};
 
-	const getTrendingMovies = page => {
-		movieService
-			.getTrandingMovies(page)
-			.then(res => setMovies(movies => [...movies, ...res]))
-			.catch(() => setError(true))
-			.finally(() => {
-				setLoading(false);
-				setNewItemLoading(false);
-			});
+	const getMovies = page => {
+		if (pathname === '/popular') {
+			getPopularMovies(page)
+				.then(res => setMovies(movies => [...movies, ...res]))
+				.finally(() => setNewItemLoading(false));
+		} else {
+			getTrandingMovies(page)
+				.then(res => setMovies(movies => [...movies, ...res]))
+				.finally(() => setNewItemLoading(false));
+		}
 	};
 
 	const getMoreMovies = () => {
-		setNewItemLoading(true);
+		setNewItemLoading(false);
 		setPage(page => page + 1);
-		getTrendingMovies(page);
+		getMovies(page);
 	};
 
 	const errorContent = error ? <Error /> : null;
 	const loadingContent = loading ? <Spinner /> : null;
-	const content = !(error || loading) ? <Content movies={movies} onOpen={onOpen} /> : null;
 
 	return (
 		<div className='rowmovies'>
 			<div className='rowmovies__top'>
 				<div className='rowmovies__top-title'>
 					<img src='/tranding.svg' alt='' />
-					<h1>Trending</h1>
+					<h1>{pathname === '/popular' ? 'Popular' : 'Tranding'}</h1>
 				</div>
 				<div className='hr' />
 				<a href='#'>See more</a>
 			</div>
 			{errorContent}
 			{loadingContent}
-			{content}
+			<Content movies={movies} onOpen={onOpen} />
 
 			<div className='rowmovies__loadmore'>
 				<button className='btn btn-secondary' onClick={getMoreMovies} disabled={newItemLoading}>
